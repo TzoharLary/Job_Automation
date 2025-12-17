@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Automation | לוח חכם</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.7/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900" x-data="appState()" x-init="init()">
+  <div class="min-h-screen max-w-7xl mx-auto px-4 py-10 space-y-6">
+    <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div>
+        <p class="text-sm text-slate-500">גרסת Production-Grade</p>
+        <h1 class="text-3xl font-bold text-slate-900">חיפוש משרות חכם</h1>
+        <p class="text-slate-600">סינון קשיח: פיתוח/‏R&D בלבד, מיקומים בישראל בלבד, עם מיפוי אזורים.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-slate-500" x-text="statusText"></span>
+        <span class="px-3 py-1 text-xs rounded-full" :class="runId ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'" x-text="runId ? 'ריצה פעילה' : 'מוכן' "></span>
+      </div>
+    </header>
+
+    <section class="bg-white shadow-sm border border-slate-100 rounded-xl p-5 space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold">הפעלת ריצה</h2>
+          <p class="text-sm text-slate-600">הדבק רשימת כתובות קריירה (שורה לכל מקור). המערכת זוכרת מקורות מוצלחים ותמלא עבורך.</p>
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" class="rounded border-slate-300 text-emerald-600" x-model="mockOutbound">
+          מצב Mock ל-Outbound
+        </label>
+      </div>
+      <textarea x-model="urlsInput" class="w-full h-32 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-right p-3" placeholder="https://example.com/careers
+https://another.com/jobs"></textarea>
+      <div class="flex gap-3">
+        <button @click="startRun" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50" :disabled="loading">התחל</button>
+        <button @click="stopRun" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300" :disabled="!runId">עצור</button>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="bg-white shadow-sm border border-slate-100 rounded-xl p-5">
+        <p class="text-sm text-slate-500 mb-2">סך הכל נסרקו</p>
+        <p class="text-3xl font-bold" x-text="metrics.scanned"></p>
+      </div>
+      <div class="bg-white shadow-sm border border-slate-100 rounded-xl p-5">
+        <p class="text-sm text-slate-500 mb-2">עברו סינון</p>
+        <p class="text-3xl font-bold text-emerald-600" x-text="metrics.passed"></p>
+      </div>
+      <div class="bg-white shadow-sm border border-slate-100 rounded-xl p-5">
+        <p class="text-sm text-slate-500 mb-2">נפסלו</p>
+        <p class="text-3xl font-bold text-rose-600" x-text="metrics.failed"></p>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-white shadow-sm border border-slate-100 rounded-xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold">משרות שעברו סינון</h2>
+          <p class="text-sm text-slate-500">ממופות לפי אזור</p>
+        </div>
+        <template x-for="(jobs, region) in regions" :key="region">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold" x-text="region"></h3>
+              <span class="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full" x-text="jobs.length + ' משרות'"></span>
+            </div>
+            <div class="grid md:grid-cols-2 gap-3" x-show="jobs.length">
+              <template x-for="job in jobs" :key="job.url">
+                <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="font-semibold text-slate-900" x-text="job.title || job.url"></div>
+                    <span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700" x-text="job.score"></span>
+                  </div>
+                  <div class="text-sm text-slate-600" x-text="job.company"></div>
+                  <div class="text-sm text-slate-500" x-text="job.location"></div>
+                  <p class="text-sm text-slate-700 mt-2 line-clamp-3" x-text="job.summary"></p>
+                  <div class="text-xs mt-2" :class="job.outboundSaved ? 'text-emerald-700' : 'text-slate-500'" x-text="job.outboundSaved ? 'נשמר בהצלחה' : 'שולח ליעד...' "></div>
+                </div>
+              </template>
+            </div>
+            <p class="text-sm text-slate-400" x-show="!jobs.length">אין עדיין משרות באזור זה.</p>
+          </div>
+        </template>
+      </div>
+
+      <div class="bg-white shadow-sm border border-slate-100 rounded-xl p-5 h-full">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-semibold">לוג חי</h2>
+          <span class="text-xs text-slate-500" x-text="logs.length + ' אירועים'"></span>
+        </div>
+        <div class="space-y-2 max-h-[600px] overflow-y-auto">
+          <template x-for="log in logs" :key="log.id">
+            <div class="border border-slate-100 rounded-lg px-3 py-2 bg-slate-50">
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <span x-text="log.time"></span>
+                <span class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full" x-text="log.type"></span>
+              </div>
+              <p class="text-sm text-slate-800" x-text="log.message"></p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/ui/app.js"></script>
+</body>
+</html>
