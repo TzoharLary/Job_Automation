@@ -59,8 +59,10 @@ class StartRunResponse(BaseModel):
 
 @router.post("/start", response_model=StartRunResponse)
 async def start_run(payload: StartRunRequest, background_tasks: BackgroundTasks):
+    print(f"DEBUG: Received start_run request. Raw input length: {len(payload.raw_urls or '')}")
     run_id = str(uuid.uuid4())
     urls = payload.extract_urls()
+    print(f"DEBUG: Found {len(urls)} valid URLs from input")
     if not urls:
         raise HTTPException(status_code=400, detail="no valid urls provided")
     with session_scope() as session:

@@ -7,6 +7,7 @@ function appState() {
     mockOutbound: true,
     loading: false,
     logs: [],
+    copyBtnText: '📋 העתק לוגים',
     metrics: { scanned: 0, passed: 0, failed: 0 },
     regions: { 'מרכז': [], 'צפון': [], 'דרום': [], 'ירושלים': [], 'אחר': [] },
 
@@ -18,6 +19,18 @@ function appState() {
       this.metrics = { scanned: 0, passed: 0, failed: 0 };
       this.logs = [];
       this.regions = { 'מרכז': [], 'צפון': [], 'דרום': [], 'ירושלים': [], 'אחר': [] };
+    },
+
+    async copyLogs() {
+      const text = this.logs.map(l => `[${l.time}] [${l.category || l.type}] ${l.message}`).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        this.copyBtnText = '✅ הועתק!';
+        setTimeout(() => this.copyBtnText = '📋 העתק לוגים', 2000);
+      } catch (err) {
+        console.error('Failed to copy logs', err);
+        alert('שגיאה בהעתקה');
+      }
     },
 
     async fetchSources() {
@@ -80,6 +93,15 @@ function appState() {
         const payload = JSON.parse(ev.data);
         this.handleEvent(payload);
       };
+      // Handle log-specific events emitted by the logging stream
+      this.sse.addEventListener('log', (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          this.addLog(data.message, 'info', data.category);
+        } catch (e) {
+          console.error('Failed to parse log event', e);
+        }
+      });
       this.sse.onerror = () => {
         this.addLog('חיבור SSE נותק', 'error');
       };
@@ -90,9 +112,10 @@ function appState() {
       const eventType = payload.event_type;
       const message = payload.message || '';
       const eventKey = payload.data?.event;
+      const category = payload.data?.category; // Extract category from payload
 
       this.statusText = message;
-      this.addLog(message, eventType);
+      this.addLog(message, eventType, category);
 
       if (eventKey === 'job_passed') {
         this.metrics.scanned += 1;
@@ -131,10 +154,24 @@ function appState() {
       });
     },
 
-    addLog(message, type = 'info') {
+    addLog(message, type = 'info', category = null) {
       const ts = new Date().toLocaleTimeString('he-IL', { hour12: false });
-      this.logs.unshift({ id: `${Date.now()}-${Math.random()}`, message, type, time: ts });
-      if (this.logs.length > 200) this.logs.pop();
+      // If no category provided, try to infer from type or message content
+      if (!category) {
+        if (type === 'error') category = 'ERROR';
+        else if (type === 'warning') category = 'WARNING';
+        else if (type === 'success') category = 'SUCCESS';
+        else category = 'INFO';
+      }
+      
+      this.logs.unshift({ 
+        id: `${Date.now()}-${Math.random()}`, 
+        message, 
+        type, 
+        category, 
+        time: ts 
+      });
+      if (this.logs.length > 500) this.logs.pop(); // Increased log limit
     },
   };
 }

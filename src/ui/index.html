@@ -89,16 +89,40 @@ https://another.com/jobs"></textarea>
       <div class="bg-white shadow-sm border border-slate-100 rounded-xl p-5 h-full">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-semibold">לוג חי</h2>
-          <span class="text-xs text-slate-500" x-text="logs.length + ' אירועים'"></span>
+          <div class="flex items-center gap-2">
+            <button @click="copyLogs" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition-colors" x-text="copyBtnText"></button>
+            <span class="text-xs text-slate-500" x-text="logs.length + ' אירועים'"></span>
+          </div>
         </div>
-        <div class="space-y-2 max-h-[600px] overflow-y-auto">
+        <div class="space-y-2 max-h-[600px] overflow-y-auto" id="log-container">
           <template x-for="log in logs" :key="log.id">
-            <div class="border border-slate-100 rounded-lg px-3 py-2 bg-slate-50">
-              <div class="flex items-center justify-between text-xs text-slate-500">
+            <div class="border rounded-lg px-3 py-2 text-sm" 
+                 :class="{
+                   'bg-slate-50 border-slate-100 text-slate-600': log.category === 'INFO' || !log.category,
+                   'bg-blue-50 border-blue-100 text-blue-700': log.category === 'SCAN',
+                   'bg-emerald-50 border-emerald-100 text-emerald-800': log.category === 'SUCCESS' || log.category === 'MATCH',
+                   'bg-amber-50 border-amber-100 text-amber-800': log.category === 'FILTER' || log.category === 'SKIP',
+                   'bg-yellow-50 border-yellow-100 text-yellow-800': log.category === 'WARNING',
+                   'bg-red-50 border-red-100 text-red-800': log.category === 'ERROR',
+                   'bg-purple-50 border-purple-100 text-purple-800': log.category === 'EXTRACT',
+                   'bg-indigo-50 border-indigo-100 text-indigo-800': log.category === 'DB'
+                 }">
+              <div class="flex items-center justify-between text-xs opacity-75 mb-1">
                 <span x-text="log.time"></span>
-                <span class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full" x-text="log.type"></span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" 
+                      :class="{
+                        'bg-slate-200': log.category === 'INFO' || !log.category,
+                        'bg-blue-200': log.category === 'SCAN',
+                        'bg-emerald-200': log.category === 'SUCCESS' || log.category === 'MATCH',
+                        'bg-amber-200': log.category === 'FILTER' || log.category === 'SKIP',
+                        'bg-yellow-200': log.category === 'WARNING',
+                        'bg-red-200': log.category === 'ERROR',
+                        'bg-purple-200': log.category === 'EXTRACT',
+                        'bg-indigo-200': log.category === 'DB'
+                      }"
+                      x-text="log.category || log.type"></span>
               </div>
-              <p class="text-sm text-slate-800" x-text="log.message"></p>
+              <p x-text="log.message" class="whitespace-pre-wrap"></p>
             </div>
           </template>
         </div>

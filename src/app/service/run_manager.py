@@ -1,5 +1,6 @@
 import asyncio
 import json
+from types import SimpleNamespace
 from typing import Any, Dict
 
 from src.app.service.pipeline import Pipeline
@@ -39,20 +40,22 @@ class RunManager:
         )
 
     async def start_run(self, run_id: str, config_json: str) -> None:
+        print(f"DEBUG: RunManager.start_run called for {run_id}")
         self.stop_flags[run_id] = False
-        pipeline = Pipeline(self.publisher)
+        pipeline = Pipeline(self)
 
         config = json.loads(config_json)
 
+        # Yield first event immediately to confirm connection
         await self._save_event(run_id, EventType.START, strings.pipeline_start_run_id(run_id))
+        # Small yield to ensure event goes out before heavy lifting
+        await asyncio.sleep(0.1)
 
         try:
-            result = await pipeline.run(
-                run_id=run_id,
-                urls=config.get("urls", []),
-                use_mock_outbound=config.get("use_mock_outbound", True),
-                stop_callback=lambda: self.should_stop(run_id),
-            )
+            print(f"DEBUG: Starting pipeline for {len(config.get('urls', []))} URLs")
+            run_request = SimpleNamespace(urls=config.get("urls", []))
+            result = await pipeline.run(run_request, run_id)
+            result = result or {"jobs": [], "sources": []}
             jobs_processed = result.get("jobs", [])
             sources_summary = result.get("sources", [])
 
